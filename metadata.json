@@ -1,0 +1,6 @@
+{
+  "name": "DocuSync - Real-Time Collaborative PDF Annotation",
+  "description": "Aplikasi kolaboratif untuk upload PDF, memberi komentar per halaman/baris seperti Google Docs, dengan sinkronisasi instan WebSocket dan penyimpanan basis data permanen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
