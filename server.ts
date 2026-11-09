@@ -49,15 +49,50 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB
+  limits: { fileSize: 35 * 1024 * 1024 }, // 35 MB
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
+    const isPdfExt = file.originalname.toLowerCase().endsWith('.pdf');
+    const isPdfMime =
+      !file.mimetype ||
+      file.mimetype.toLowerCase().includes('pdf') ||
+      file.mimetype === 'application/octet-stream';
+
+    if (isPdfExt || isPdfMime) {
       cb(null, true);
     } else {
-      cb(new Error('Hanya file PDF yang diizinkan'));
+      cb(new Error('Hanya file berformat PDF (.pdf) yang diperbolehkan'));
     }
   },
 });
+
+// Helper to reliably count PDF pages without hanging
+async function countPdfPages(filePath: string): Promise<number> {
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    // Fast regex heuristic
+    const fileContent = fileBuffer.toString('binary');
+    const matches = fileContent.match(/\/Type\s*\/Page[^s]/g);
+    const regexCount = matches && matches.length > 0 ? matches.length : 1;
+
+    try {
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const doc = await Promise.race([
+        pdfjs.getDocument({ data: new Uint8Array(fileBuffer) }).promise,
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500)),
+      ]);
+      if (doc && doc.numPages) {
+        return doc.numPages;
+      }
+    } catch {
+      // Fallback to regex count
+    }
+
+    return regexCount;
+  } catch (e) {
+    console.warn('Page count error, fallback to 1:', e);
+    return 1;
+  }
+}
 
 // REST API Endpoints
 app.get('/api/documents', (_req, res) => {
@@ -99,47 +134,99 @@ app.get('/api/documents/:id/file', (req, res) => {
   }
 });
 
-app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: 'Silakan pilih file PDF' });
+// Multipart Form-Data Upload Endpoint with strict JSON error handling
+app.post('/api/documents/upload', (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            error: 'Ukuran file melebihi batas maksimal 35MB',
+          });
+        }
+        return res.status(400).json({ success: false, error: `Upload error: ${err.message}` });
+      }
+      return res.status(400).json({ success: false, error: err.message || 'Gagal memproses file upload' });
     }
-
-    const filePath = req.file.path;
-    let pageCount = 1;
 
     try {
-      // Extract page count using pdfjs-dist
-      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-      const data = new Uint8Array(fs.readFileSync(filePath));
-      const loadedPdf = await pdfjs.getDocument({ data }).promise;
-      pageCount = loadedPdf.numPages || 1;
-    } catch (pdfErr) {
-      console.warn('Could not parse PDF page count with pdfjs, default to 1:', pdfErr);
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'Silakan pilih file PDF' });
+      }
+
+      const filePath = req.file.path;
+      const pageCount = await countPdfPages(filePath);
+
+      const docId = 'doc-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+      const displayName = req.body.name || req.file.originalname;
+
+      const newDoc = createDocument({
+        id: docId,
+        name: displayName,
+        original_name: req.file.originalname,
+        file_size: req.file.size,
+        page_count: pageCount,
+        file_path: filePath,
+      });
+
+      broadcastGlobal({
+        type: 'document_created',
+        document: newDoc,
+      });
+
+      return res.json({ success: true, document: newDoc });
+    } catch (processErr: unknown) {
+      console.error('Error processing uploaded PDF:', processErr);
+      const msg = processErr instanceof Error ? processErr.message : String(processErr);
+      return res.status(500).json({ success: false, error: msg });
+    }
+  });
+});
+
+// Direct Base64 JSON Upload Endpoint (100% proxy & iframe safe)
+app.post('/api/documents/upload-base64', async (req, res) => {
+  try {
+    const { name, originalName, base64Data } = req.body;
+    if (!base64Data) {
+      return res.status(400).json({ success: false, error: 'Data base64 file PDF tidak ditemukan' });
     }
 
+    // Strip Data URL prefix if present (e.g. "data:application/pdf;base64,")
+    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+
+    const fileName = (originalName || name || 'document.pdf').replace(/[^a-zA-Z0-9.-]/g, '_');
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const savedFileName = `${uniqueSuffix}-${fileName}`;
+    const filePath = path.resolve(uploadsDir, savedFileName);
+
+    fs.writeFileSync(filePath, buffer);
+
+    const pageCount = await countPdfPages(filePath);
     const docId = 'doc-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
-    const displayName = req.body.name || req.file.originalname;
+    const displayName = name || originalName || 'Dokumen PDF';
 
     const newDoc = createDocument({
       id: docId,
       name: displayName,
-      original_name: req.file.originalname,
-      file_size: req.file.size,
+      original_name: originalName || displayName,
+      file_size: buffer.length,
       page_count: pageCount,
       file_path: filePath,
     });
 
-    // Broadcast new document creation to all connected WebSocket clients
     broadcastGlobal({
       type: 'document_created',
       document: newDoc,
     });
 
-    res.json({ success: true, document: newDoc });
+    return res.json({ success: true, document: newDoc });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ success: false, error: message });
+    console.error('Error processing base64 PDF:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ success: false, error: msg });
   }
 });
 

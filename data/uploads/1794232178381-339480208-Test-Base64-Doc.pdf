@@ -1,0 +1,264 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 6 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 7 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 8 0 R /Resources << /Font << /F1 9 0 R >> >> >>
+endobj
+6 0 obj
+<< /Length 1970 >>
+stream
+BT
+/F1 12 Tf
+/F1 16 Tf
+50 746 Td
+(PROPOSAL KERJASAMA: SISTEM REVIEW DOKUMEN REAL-TIME) Tj
+-50 -746 Td
+/F1 11 Tf
+50 726 Td
+(DocuSync Collaborative Engine - Versi 2.4.0) Tj
+-50 -726 Td
+/F1 9 Tf
+50 708 Td
+(---------------------------------------------------------------------------------------------------------) Tj
+-50 -708 Td
+/F1 13 Tf
+50 686 Td
+(1. RINGKASAN EKSEKUTIF) Tj
+-50 -686 Td
+/F1 10 Tf
+50 670 Td
+(Kebutuhan akan kolaborasi dokumen digital yang cepat dan akurat kini menjadi prioritas.) Tj
+-50 -670 Td
+/F1 10 Tf
+50 654 Td
+(Aplikasi DocuSync hadir untuk menghadirkan pengalaman review PDF interaktif layaknya) Tj
+-50 -654 Td
+/F1 10 Tf
+50 638 Td
+(Google Docs: pengguna dapat menaruh komentar tepat di koordinat baris atau halaman,) Tj
+-50 -638 Td
+/F1 10 Tf
+50 616 Td
+(menjawab balasan secara berjenjang, dan memantau status penyelesaian \(resolved\).) Tj
+-50 -616 Td
+/F1 13 Tf
+50 594 Td
+(2. FITUR UTAMA SISTEM) Tj
+-50 -594 Td
+/F1 10 Tf
+50 578 Td
+(- Real-Time Sync: Sinkronisasi instan antar seluruh pengguna menggunakan WebSocket.) Tj
+-50 -578 Td
+/F1 10 Tf
+50 562 Td
+(- Pin Point & Line Annotation: Pasang pin komentar di sembarang area atau sorot baris teks.) Tj
+-50 -562 Td
+/F1 10 Tf
+50 546 Td
+(- Basis Data Permanen: Histori komentar, balasan, dan status tersimpan di database.) Tj
+-50 -546 Td
+/F1 10 Tf
+50 530 Td
+(- Presence Collaboration: Lihat siapa saja yang sedang aktif melihat dokumen dan kursor.) Tj
+-50 -530 Td
+/F1 10 Tf
+50 508 Td
+(- Multi-File Support: Kemudahan mengunggah file PDF mandiri kapan saja.) Tj
+-50 -508 Td
+/F1 13 Tf
+50 486 Td
+(3. PANDUAN PENGUJIAN CEPAT) Tj
+-50 -486 Td
+/F1 10 Tf
+50 470 Td
+(Langkah 1: Aktifkan mode komentar dengan mengklik tombol balon komentar di toolbar.) Tj
+-50 -470 Td
+/F1 10 Tf
+50 454 Td
+(Langkah 2: Klik di area mana saja pada halaman ini untuk menempatkan pin komentar baru.) Tj
+-50 -454 Td
+/F1 10 Tf
+50 438 Td
+(Langkah 3: Buka tab browser baru berdampingan untuk menyaksikan pembaruan instan!) Tj
+-50 -438 Td
+ET
+endstream
+endobj
+7 0 obj
+<< /Length 1651 >>
+stream
+BT
+/F1 12 Tf
+/F1 16 Tf
+50 746 Td
+(SPESIFIKASI ARSITEKTUR REAL-TIME WEBSOCKET) Tj
+-50 -746 Td
+/F1 11 Tf
+50 726 Td
+(Modul Komunikasi Bi-Directional & Keandalan Jaringan) Tj
+-50 -726 Td
+/F1 9 Tf
+50 708 Td
+(---------------------------------------------------------------------------------------------------------) Tj
+-50 -708 Td
+/F1 13 Tf
+50 686 Td
+(1. PROTOKOL WEBSOCKET TERINTEGRASI) Tj
+-50 -686 Td
+/F1 10 Tf
+50 670 Td
+(DocuSync menghubungkan client dan server melalui WebSocket channel yang persisten.) Tj
+-50 -670 Td
+/F1 10 Tf
+50 654 Td
+(Setiap mutasi \(tambah komentar, reply thread, toggle status resolve\) diproses oleh server) Tj
+-50 -654 Td
+/F1 10 Tf
+50 632 Td
+(sebagai single source of truth, lalu disiarkan \(broadcast\) secara instan ke kolaborator.) Tj
+-50 -632 Td
+/F1 13 Tf
+50 610 Td
+(2. PENYIMPANAN BASIS DATA RELASIONAL) Tj
+-50 -610 Td
+/F1 10 Tf
+50 594 Td
+(Data tidak disimpan sementara di memori saja, melainkan dicatat permanen dalam SQLite:) Tj
+-50 -594 Td
+/F1 10 Tf
+50 578 Td
+(- Tabel Dokumen: Metadata nama file, ukuran, jumlah halaman, dan waktu unggah.) Tj
+-50 -578 Td
+/F1 10 Tf
+50 562 Td
+(- Tabel Komentar: Koordinat relatif \(X%, Y%\), nomor halaman, nomor baris, status.) Tj
+-50 -562 Td
+/F1 10 Tf
+50 540 Td
+(- Tabel Balasan \(Replies\): Threading percakapan bertingkat dengan timestamp dan avatar.) Tj
+-50 -540 Td
+/F1 13 Tf
+50 518 Td
+(3. PENANGANAN REKONEKSI DAN IDEMPOTENSI) Tj
+-50 -518 Td
+/F1 10 Tf
+50 502 Td
+(Jika sambungan internet terputus sesaat, klien secara otomatis melakukan auto-reconnect) Tj
+-50 -502 Td
+/F1 10 Tf
+50 486 Td
+(dan memvalidasi state terbaru sehingga tidak terjadi duplikasi komentar.) Tj
+-50 -486 Td
+ET
+endstream
+endobj
+8 0 obj
+<< /Length 1628 >>
+stream
+BT
+/F1 12 Tf
+/F1 16 Tf
+50 746 Td
+(PANDUAN DEPLOYMENT KE GITHUB & CLOUD PROVIDER) Tj
+-50 -746 Td
+/F1 11 Tf
+50 726 Td
+(Langkah Publikasi Menuju Vercel, Heroku, Railway, atau Render) Tj
+-50 -726 Td
+/F1 9 Tf
+50 708 Td
+(---------------------------------------------------------------------------------------------------------) Tj
+-50 -708 Td
+/F1 13 Tf
+50 686 Td
+(1. MENYIMPAN KE REPOSITORI GITHUB) Tj
+-50 -686 Td
+/F1 10 Tf
+50 670 Td
+(Inisialisasi git pada direktori proyek:) Tj
+-50 -670 Td
+/F1 10 Tf
+50 656 Td
+(  $ git init) Tj
+-50 -656 Td
+/F1 10 Tf
+50 642 Td
+(  $ git add .) Tj
+-50 -642 Td
+/F1 10 Tf
+50 628 Td
+(  $ git commit -m 'feat: initial collaborative PDF annotation app') Tj
+-50 -628 Td
+/F1 10 Tf
+50 614 Td
+(  $ git branch -M main) Tj
+-50 -614 Td
+/F1 10 Tf
+50 600 Td
+(  $ git remote add origin https://github.com/username/docusync-app.git) Tj
+-50 -600 Td
+/F1 10 Tf
+50 578 Td
+(  $ git push -u origin main) Tj
+-50 -578 Td
+/F1 13 Tf
+50 556 Td
+(2. DEPLOYMENT KE HEROKU / RAILWAY / RENDER) Tj
+-50 -556 Td
+/F1 10 Tf
+50 540 Td
+(Karena aplikasi membutuhkan koneksi WebSocket yang persisten, gunakan hosting Node.js:) Tj
+-50 -540 Td
+/F1 10 Tf
+50 524 Td
+(- Hubungkan repositori GitHub ke Heroku atau Render Dashboard.) Tj
+-50 -524 Td
+/F1 10 Tf
+50 508 Td
+(- Script build: npm run build, Script start: npm run start.) Tj
+-50 -508 Td
+/F1 10 Tf
+50 486 Td
+(- Port akan secara otomatis terikat melalui variable process.env.PORT.) Tj
+-50 -486 Td
+/F1 13 Tf
+50 464 Td
+(3. STATUS VALIDASI & KESIAPAN) Tj
+-50 -464 Td
+/F1 10 Tf
+50 448 Td
+(Seluruh fungsi komentar per halaman dan baris telah siap digunakan dalam pengujian live.) Tj
+-50 -448 Td
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000253 00000 n 
+0000000379 00000 n 
+0000000505 00000 n 
+0000002526 00000 n 
+0000004228 00000 n 
+0000005907 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+5977
+%%EOF

@@ -56,6 +56,15 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     }
   };
 
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (e) => reject(new Error('Gagal membaca file dari disk: ' + e));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) return;
@@ -63,28 +72,85 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     setIsUploading(true);
     setUploadError(null);
 
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('name', (documentTitle.trim() || selectedFile.name).endsWith('.pdf') ? (documentTitle.trim() || selectedFile.name) : `${documentTitle.trim() || selectedFile.name}.pdf`);
+    const targetName = (documentTitle.trim() || selectedFile.name).endsWith('.pdf')
+      ? (documentTitle.trim() || selectedFile.name)
+      : `${documentTitle.trim() || selectedFile.name}.pdf`;
 
+    // Strategy 1: Multipart upload
+    let uploadDone = false;
     try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('name', targetName);
+
       const response = await fetch('/api/documents/upload', {
         method: 'POST',
         body: formData,
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Gagal mengupload dokumen');
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        // Not valid JSON from proxy/nginx, force throw to trigger base64 fallback
+        throw new Error(
+          `Server mengembalikan respons non-JSON (${response.status}): ${text.replace(/<[^>]+>/g, '').trim().substring(0, 100)}`
+        );
       }
 
-      onUploadSuccess(data.document);
-      onClose();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setUploadError(msg);
+      if (response.ok && data?.success && data?.document) {
+        onUploadSuccess(data.document);
+        onClose();
+        uploadDone = true;
+        return;
+      } else {
+        throw new Error(data?.error || 'Gagal memproses file via multipart');
+      }
+    } catch (multipartErr: unknown) {
+      console.warn('Multipart upload encountered an issue, trying Base64 fallback...', multipartErr);
+
+      // Strategy 2: Base64 JSON upload (100% proxy & iframe safe)
+      try {
+        const base64Data = await readFileAsBase64(selectedFile);
+        const b64Response = await fetch('/api/documents/upload-base64', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: targetName,
+            originalName: selectedFile.name,
+            base64Data,
+          }),
+        });
+
+        const b64Text = await b64Response.text();
+        let b64Data: any = null;
+        try {
+          b64Data = JSON.parse(b64Text);
+        } catch {
+          throw new Error(
+            `Server error (${b64Response.status}): ${b64Text.replace(/<[^>]+>/g, '').trim().substring(0, 120)}`
+          );
+        }
+
+        if (b64Response.ok && b64Data?.success && b64Data?.document) {
+          onUploadSuccess(b64Data.document);
+          onClose();
+          uploadDone = true;
+          return;
+        } else {
+          throw new Error(b64Data?.error || 'Gagal mengupload via Base64');
+        }
+      } catch (b64Err: unknown) {
+        const finalMsg = b64Err instanceof Error ? b64Err.message : String(b64Err);
+        setUploadError(finalMsg);
+      }
     } finally {
-      setIsUploading(false);
+      if (!uploadDone) {
+        setIsUploading(false);
+      }
     }
   };
 
